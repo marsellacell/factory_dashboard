@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Factory Production Dashboard</title>
+    <!-- Include our CSS -->
+    <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}" />
+    <!-- Load Chart.js from a CDN.  The library allows us to draw
+         interactive charts in the dashboard.  See the documentation for
+         examples of bar charts, line charts and more【960523207259154†L23-L43】. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <h1>Factory Production Dashboard</h1>
+    </header>
+
+    <main>
+      <!-- Filter Section -->
+      <section class="filters">
+        <form method="get" class="filter-form">
+          <label>
+            Start date:
+            <input type="date" name="start_date" value="{{ selected_start }}" />
+          </label>
+          <label>
+            End date:
+            <input type="date" name="end_date" value="{{ selected_end }}" />
+          </label>
+          <label>
+            Division:
+            <select name="division">
+              <option value="">All</option>
+              {% for div in divisions %}
+                <option value="{{ div }}" {% if selected_division == div %}selected{% endif %}>{{ div }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <button type="submit">Filter</button>
+        </form>
+      </section>
+
+      <!-- Summary Section -->
+      <section class="summary">
+        <h2>Production Summary</h2>
+        <p><strong>Total Production:</strong> {{ summary.total_production }}</p>
+        <p><strong>Machine Status:</strong></p>
+        <ul class="status-list">
+          {% for status, count in summary.machine_status.items %}
+            <li>{{ status }}: {{ count }}</li>
+          {% empty %}
+            <li>No data available.</li>
+          {% endfor %}
+        </ul>
+      </section>
+
+      <!-- Chart Section -->
+      <section class="chart">
+        <canvas id="productionChart" width="400" height="200"></canvas>
+      </section>
+
+      <!-- Data Table Section -->
+      <section class="data-table">
+        <h2>Detailed Production Data</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Division</th>
+                <th>Machine</th>
+                <th>Production</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in data %}
+                <tr>
+                  <td>{{ row.Date|date:'Y-m-d' }}</td>
+                  <td>{{ row.Division }}</td>
+                  <td>{{ row.Machine }}</td>
+                  <td>{{ row.Production }}</td>
+                  <td>{{ row.MachineStatus }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="5">No data found.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- Chart initialization script.  The labels and values passed from
+         the view are serialized into JSON and injected directly into
+         the chart configuration.  Chart.js uses these arrays to draw
+         a simple bar chart【960523207259154†L35-L75】. -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const ctx = document.getElementById("productionChart").getContext("2d");
+        const data = {
+          labels: {{ chart_labels|safe }},
+          datasets: [
+            {
+              label: "Units Produced",
+              data: {{ chart_values|safe }},
+              backgroundColor: "rgba(46, 134, 193, 0.5)",
+              borderColor: "rgba(46, 134, 193, 1)",
+              borderWidth: 1,
+            },
+          ],
+        };
+        const config = {
+          type: "bar",
+          data: data,
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+              },
+            },
+          },
+        };
+        // eslint-disable-next-line no-undef
+        const productionChart = new Chart(ctx, config);
+      });
+    </script>
+  </body>
+</html>
